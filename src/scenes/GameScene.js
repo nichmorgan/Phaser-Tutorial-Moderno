@@ -2,6 +2,7 @@ import Phaser from "phaser"
 
 import ScoreLabel from '../ui/ScoreLabel'
 import BombSpawner from '../entities/Bomb'
+import StarSpawner from '../entities/Star'
 
 const GROUND_KEY = 'ground'
 const DUDE_KEY = 'dude'
@@ -38,7 +39,15 @@ export default class GameScene extends Phaser.Scene {
 
     const platforms = this.createPlatforms()
     this.player = this.createPlayer()
-    this.stars = this.createStars()
+
+    const starSpawnParams = {
+      key: STAR_KEY,
+      repeat: 11,
+      setXY: { x: 12, y: 0, stepX: 70 }
+    }
+    this.starSpawner = new StarSpawner(this, STAR_KEY)
+    this.starSpawner.spawn(starSpawnParams)
+    const starsGroup = this.starSpawner.group
 
     this.scoreLabel = this.createScoreLabel(16, 16, 0)
 
@@ -46,12 +55,12 @@ export default class GameScene extends Phaser.Scene {
     const bombsGroup = this.bombSpawner.group
 
     this.physics.add.collider(this.player, platforms)
-    this.physics.add.collider(this.stars, platforms)
+    this.physics.add.collider(starsGroup, platforms)
     this.physics.add.collider(bombsGroup, platforms)
     this.physics.add.collider(this.player, bombsGroup, this.hitBomb, null, this)
 
 
-    this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this)
+    this.physics.add.overlap(this.player, starsGroup, this.collectStar, null, this)
 
     this.cursors = this.input.keyboard.createCursorKeys()
   }
@@ -144,10 +153,11 @@ export default class GameScene extends Phaser.Scene {
   collectStar(player, star) {
     star.disableBody(true, true)
 
+    const starGroup = this.starSpawner.group
     this.scoreLabel.add(10)
 
-    if (this.stars.countActive(true) === 0) {
-      this.stars.children.iterate(child => {
+    if (starGroup.countActive(true) === 0) {
+      starGroup.children.iterate(child => {
         child.enableBody(true, child.x, 0, true, true)
       })
     }
