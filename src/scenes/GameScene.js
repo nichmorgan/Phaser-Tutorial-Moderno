@@ -3,6 +3,7 @@ import Phaser from "phaser"
 import ScoreLabel from '../ui/ScoreLabel'
 import BombSpawner from '../entities/Bomb'
 import StarSpawner from '../entities/Star'
+import PlayerSpawner from '../entities/Player'
 
 const GROUND_KEY = 'ground'
 const DUDE_KEY = 'dude'
@@ -13,11 +14,13 @@ export default class GameScene extends Phaser.Scene {
   constructor() {
     super('game-scene')
 
-    this.player = undefined
+    this.playerSpawner = new PlayerSpawner(this, DUDE_KEY)
+
     this.cursors = undefined
     this.scoreLabel = undefined
     this.stars = undefined
     this.bombSpawner = undefined
+    this.platforms = undefined
 
     this.gameOver = false
   }
@@ -28,17 +31,23 @@ export default class GameScene extends Phaser.Scene {
     this.load.image(STAR_KEY, 'assets/star.png')
     this.load.image(BOMB_KEY, 'assets/bomb.png')
 
-    this.load.spritesheet(DUDE_KEY,
-      'assets/dude.png',
-      { frameWidth: 32, frameHeight: 48 }
-    )
+    this.playerSpawner.preload()
+
+    // this.load.spritesheet(DUDE_KEY,
+    //   'assets/dude.png',
+    //   { frameWidth: 32, frameHeight: 48 }
+    // )
   }
 
   create() {
+    console.log('opa')
     this.add.image(400, 300, 'sky')
+    console.log('opa')
+    this.platforms = this.createPlatforms()
+    this.scoreLabel = this.createScoreLabel(16, 16, 0)
+    this.playerSpawner.create()
+    this.bombSpawner = new BombSpawner(this, BOMB_KEY)
 
-    const platforms = this.createPlatforms()
-    this.player = this.createPlayer()
 
     const starSpawnParams = {
       key: STAR_KEY,
@@ -47,22 +56,22 @@ export default class GameScene extends Phaser.Scene {
     }
     this.starSpawner = new StarSpawner(this, STAR_KEY)
     this.starSpawner.spawn(starSpawnParams)
-    const starsGroup = this.starSpawner.group
 
-    this.scoreLabel = this.createScoreLabel(16, 16, 0)
-
-    this.bombSpawner = new BombSpawner(this, BOMB_KEY)
-    const bombsGroup = this.bombSpawner.group
-
-    this.physics.add.collider(this.player, platforms)
-    this.physics.add.collider(starsGroup, platforms)
-    this.physics.add.collider(bombsGroup, platforms)
-    this.physics.add.collider(this.player, bombsGroup, this.hitBomb, null, this)
-
-
-    this.physics.add.overlap(this.player, starsGroup, this.collectStar, null, this)
-
+    this.createCollisions()
     this.cursors = this.input.keyboard.createCursorKeys()
+  }
+
+  createCollisions() {
+    const player = this.playerSpawner.player
+    const stars = this.starSpawner.group
+    const bombs = this.bombSpawner.group
+
+    this.physics.add.collider(player, this.platforms)
+    this.physics.add.collider(stars, this.platforms)
+    this.physics.add.collider(bombs, this.platforms)
+    this.physics.add.collider(player, bombs, this.hitBomb, null, this)
+
+    this.physics.add.overlap(player, stars, this.collectStar, null, this)
   }
 
   update() {
@@ -70,21 +79,7 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-160)
-
-      this.player.anims.play('left', true)
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(160)
-      this.player.anims.play('right', true)
-    } else {
-      this.player.setVelocityX(0)
-      this.player.anims.play('turn')
-    }
-
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
-      this.player.setVelocityY(-330)
-    }
+    this.playerSpawner.move(this.cursors)
   }
 
   createPlatforms() {
@@ -97,48 +92,6 @@ export default class GameScene extends Phaser.Scene {
     platforms.create(750, 220, GROUND_KEY)
 
     return platforms
-  }
-
-  createPlayer() {
-    const player = this.physics.add.sprite(100, 450, DUDE_KEY)
-    player.setBounce(0.2)
-    player.setCollideWorldBounds(true)
-
-    this.anims.create({
-      key: 'left',
-      frames: this.anims.generateFrameNumbers(DUDE_KEY, { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1
-    })
-
-    this.anims.create({
-      key: 'turn',
-      frames: [{ key: DUDE_KEY, frame: 4 }],
-      frameRate: 20
-    })
-
-    this.anims.create({
-      key: 'right',
-      frames: this.anims.generateFrameNumbers(DUDE_KEY, { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1
-    })
-
-    return player
-  }
-
-  createStars() {
-    const stars = this.physics.add.group({
-      key: STAR_KEY,
-      repeat: 11,
-      setXY: { x: 12, y: 0, stepX: 70 }
-    })
-
-    stars.children.iterate(child => {
-      child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8))
-    })
-
-    return stars
   }
 
   createScoreLabel(x, y, score) {
