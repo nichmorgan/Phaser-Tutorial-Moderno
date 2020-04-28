@@ -1,5 +1,3 @@
-import Phaser from "phaser"
-
 export default class Player {
   constructor(scene, key, cursors) {
     this._player = undefined
