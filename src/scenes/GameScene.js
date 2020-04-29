@@ -32,17 +32,10 @@ export default class GameScene extends Phaser.Scene {
     this.load.image(BOMB_KEY, 'assets/bomb.png')
 
     this.playerSpawner.preload()
-
-    // this.load.spritesheet(DUDE_KEY,
-    //   'assets/dude.png',
-    //   { frameWidth: 32, frameHeight: 48 }
-    // )
   }
 
   create() {
-    console.log('opa')
     this.add.image(400, 300, 'sky')
-    console.log('opa')
     this.platforms = this.createPlatforms()
     this.scoreLabel = this.createScoreLabel(16, 16, 0)
     this.playerSpawner.create()
